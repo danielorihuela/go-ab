@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func sendRequest(client *http.Client, id int, requestId int, testUrl string) int {
@@ -33,9 +35,11 @@ func main() {
 	requests := make(chan int)
 	results := make(chan int, *numberRequestsPtr)
 
+	startRequests := time.Now()
 	for connectionId := 0; connectionId < *numberConcurrentConnectionsPtr; connectionId++ {
 		transport := &http.Transport{DisableKeepAlives: !*keepAlivePtr}
 		client := &http.Client{Transport: transport}
+
 		go func(connectionId int) {
 			for requestId := range requests {
 				results <- sendRequest(client, connectionId, requestId, testUrl)
@@ -51,4 +55,10 @@ func main() {
 	for resultPosition := 0; resultPosition < *numberRequestsPtr; resultPosition++ {
 		<-results
 	}
+	timeTaken := time.Since(startRequests).Seconds()
+
+	fmt.Println("Total time of program in seconds", timeTaken)
+	fmt.Println("Requests per second", float64(*numberRequestsPtr)/timeTaken)
+	fmt.Println("Time per request (mean)", float64(*numberConcurrentConnectionsPtr)*timeTaken*1000/float64(*numberRequestsPtr))
+	fmt.Println("Time per request (mean, across all concurrent requests)", timeTaken*1000/float64(*numberRequestsPtr))
 }
