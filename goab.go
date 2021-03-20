@@ -3,19 +3,21 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
-func sendRequest(client *http.Client, id int, requestId int, testUrl string) int {
-	log.Println("Worker", id, "is launching request", requestId)
-	_, err := client.Get(testUrl)
-	log.Println("Worker", id, "finished request", requestId)
+func sendRequest(client *http.Client, testUrl string) int {
+	resp, err := client.Get(testUrl)
 	if err != nil {
 		return 0
 	}
+	io.Copy(ioutil.Discard, resp.Body)
+	resp.Body.Close()
 	return 1
 }
 
@@ -35,14 +37,14 @@ func main() {
 	requests := make(chan int)
 	results := make(chan int, *numberRequestsPtr)
 
+	transport := &http.Transport{DisableKeepAlives: !*keepAlivePtr}
+	client := &http.Client{Transport: transport}
+
 	startRequests := time.Now()
 	for connectionId := 0; connectionId < *numberConcurrentConnectionsPtr; connectionId++ {
-		transport := &http.Transport{DisableKeepAlives: !*keepAlivePtr}
-		client := &http.Client{Transport: transport}
-
 		go func(connectionId int) {
-			for requestId := range requests {
-				results <- sendRequest(client, connectionId, requestId, testUrl)
+			for range requests {
+				results <- sendRequest(client, testUrl)
 			}
 		}(connectionId)
 	}
