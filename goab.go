@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
+
+	"github.com/danielorihuela/goab/logger"
 )
+
+var log = logger.New(false, logger.DebugLevel)
 
 func sendRequest(client *http.Client, testUrl string) int {
 	resp, err := client.Get(testUrl)
 	if err != nil {
+		log.Error(err)
 		return 0
 	}
 	io.Copy(ioutil.Discard, resp.Body)
@@ -29,10 +34,10 @@ func main() {
 
 	testUrl := os.Args[len(os.Args)-1]
 
-	log.Println("Url to test =", testUrl)
-	log.Println("Number of requests =", *numberRequestsPtr)
-	log.Println("Concurrent requests =", *numberConcurrentConnectionsPtr)
-	log.Println("Keep Alive HTTP is activated =", *keepAlivePtr)
+	log.Debug("Url to test =", testUrl)
+	log.Debug("Number of requests =", *numberRequestsPtr)
+	log.Debug("Concurrent requests =", *numberConcurrentConnectionsPtr)
+	log.Debug("Keep Alive HTTP is activated =", *keepAlivePtr)
 
 	requests := make(chan int)
 	results := make(chan int, *numberRequestsPtr)
