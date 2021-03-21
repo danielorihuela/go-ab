@@ -54,8 +54,9 @@ func main() {
 	}
 	close(requests)
 
+	totalResults := 0
 	for resultPosition := 0; resultPosition < *numberRequestsPtr; resultPosition++ {
-		<-results
+		totalResults += <-results
 	}
 	timeTaken := time.Since(startRequests).Seconds()
 
@@ -63,4 +64,8 @@ func main() {
 	fmt.Println("Requests per second", float64(*numberRequestsPtr)/timeTaken)
 	fmt.Println("Time per request (mean)", float64(*numberConcurrentConnectionsPtr)*timeTaken*1000/float64(*numberRequestsPtr))
 	fmt.Println("Time per request (mean, across all concurrent requests)", timeTaken*1000/float64(*numberRequestsPtr))
+
+	fmt.Println("Errored responses =", *numberRequestsPtr-totalResults)
+	errorPercentage := (1 - (float64(totalResults) / float64(*numberRequestsPtr))) * 100
+	fmt.Println("Errored responses percentage =", strconv.FormatFloat(errorPercentage, 'f', 2, 64)+"%")
 }
