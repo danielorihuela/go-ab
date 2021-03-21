@@ -18,12 +18,17 @@ var log = logger.New(false, logger.DebugLevel)
 const UnsuccessfulRequest = 0
 const SuccessfulRequest = 1
 
-func pageIsNotReachable(resp *http.Response, err error) bool {
-	if err != nil || resp.StatusCode == 404 {
-		return true
-	}
-	return false
+func userRemovedConcurrentConnections(concurrentConnections int) bool {
+	return concurrentConnections == 0
 }
+
+func concurrentConnectionsWillNotHaveRequests(concurrentConnections int, requests int) bool {
+	return concurrentConnections > requests
+}
+
+func pageIsNotReachable(resp *http.Response, err error) bool {
+	return err != nil || resp.StatusCode == 404
+	}
 
 func sendRequest(client *http.Client, testUrl string) int {
 	resp, err := client.Get(testUrl)
@@ -49,8 +54,15 @@ func main() {
 	log.Debug("Concurrent requests =", *numberConcurrentConnectionsPtr)
 	log.Debug("Keep Alive HTTP is activated =", *keepAlivePtr)
 
-	resp, _ := http.Get(testUrl)
-	fmt.Println(*resp)
+	if userRemovedConcurrentConnections(*numberConcurrentConnectionsPtr) {
+		fmt.Println("-c cannot be 0")
+		os.Exit(1)
+	}
+
+	if concurrentConnectionsWillNotHaveRequests(*numberConcurrentConnectionsPtr, *numberRequestsPtr) {
+		fmt.Println("-c value cannot be greater than -n value")
+		os.Exit(1)
+	}
 
 	resp, err := http.Get(testUrl)
 	if pageIsNotReachable(resp, err) {
