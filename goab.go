@@ -15,15 +15,25 @@ import (
 
 var log = logger.New(false, logger.DebugLevel)
 
+const UnsuccessfulRequest = 0
+const SuccessfulRequest = 1
+
+func pageIsNotReachable(resp *http.Response, err error) bool {
+	if err != nil || resp.StatusCode == 404 {
+		return true
+	}
+	return false
+}
+
 func sendRequest(client *http.Client, testUrl string) int {
 	resp, err := client.Get(testUrl)
 	if err != nil {
 		log.Error(err)
-		return 0
+		return UnsuccessfulRequest
 	}
 	io.Copy(ioutil.Discard, resp.Body)
 	resp.Body.Close()
-	return 1
+	return SuccessfulRequest
 }
 
 func main() {
@@ -38,6 +48,15 @@ func main() {
 	log.Debug("Number of requests =", *numberRequestsPtr)
 	log.Debug("Concurrent requests =", *numberConcurrentConnectionsPtr)
 	log.Debug("Keep Alive HTTP is activated =", *keepAlivePtr)
+
+	resp, _ := http.Get(testUrl)
+	fmt.Println(*resp)
+
+	resp, err := http.Get(testUrl)
+	if pageIsNotReachable(resp, err) {
+		fmt.Println("The introduced url cannot be reached.")
+		os.Exit(1)
+	}
 
 	requests := make(chan int)
 	results := make(chan int, *numberRequestsPtr)
@@ -61,7 +80,10 @@ func main() {
 
 	totalResults := 0
 	for resultPosition := 0; resultPosition < *numberRequestsPtr; resultPosition++ {
-		totalResults += <-results
+		result := <-results
+		if result == SuccessfulRequest {
+			totalResults += 1
+		}
 	}
 	timeTaken := time.Since(startRequests).Seconds()
 
