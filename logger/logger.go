@@ -26,14 +26,18 @@ func New(enabled bool, level Level) *Logger {
 	}
 }
 
+func (logger *Logger) mustBePrinted(level Level) bool {
+	return logger.Enabled && logger.Level <= level
+}
+
 func (logger *Logger) Debug(messageArgs ...interface{}) {
-	if logger.Enabled && logger.Level <= DebugLevel {
+	if logger.mustBePrinted(DebugLevel) {
 		log.Println("[DEBUG]", messageArgs)
 	}
 }
 
 func (logger *Logger) Error(messageArgs ...interface{}) {
-	if logger.Enabled && logger.Level <= ErrorLevel {
+	if logger.mustBePrinted(ErrorLevel) {
 		log.Println("[ERROR]", messageArgs)
 	}
 }
