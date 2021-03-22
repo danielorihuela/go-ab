@@ -45,9 +45,13 @@ func main() {
 	numberRequestsPtr := flag.Int("n", 1, "Number of requests to make")
 	numberConcurrentConnectionsPtr := flag.Int("c", 1, "Number of concurrent connections")
 	keepAlivePtr := flag.Bool("k", false, "Activate keep alive HTTP feature")
+	startServerPtr := flag.Bool("s", false, "Start a golang server to test")
 	flag.Parse()
 
-	testUrl := os.Args[len(os.Args)-1]
+	testUrl := ""
+	if len(flag.Args()) == 1 {
+		testUrl = flag.Args()[0]
+	}
 
 	log.Debug("Url to test =", testUrl)
 	log.Debug("Number of requests =", *numberRequestsPtr)
@@ -62,6 +66,11 @@ func main() {
 	if concurrentConnectionsWillNotHaveRequests(*numberConcurrentConnectionsPtr, *numberRequestsPtr) {
 		fmt.Println("-c value cannot be greater than -n value")
 		os.Exit(1)
+	}
+
+	if *startServerPtr {
+		go launchServer()
+		testUrl = "http://localhost:1234/"
 	}
 
 	resp, err := http.Get(testUrl)
