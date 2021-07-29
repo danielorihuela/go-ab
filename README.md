@@ -1,4 +1,4 @@
-# go_ab
+# go-ab
 
 ## Goal
 
